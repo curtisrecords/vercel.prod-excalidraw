@@ -1,12 +1,15 @@
 import React from "react";
-import { PlusPromoIcon } from "../../src/components/icons";
-import { MainMenu } from "../../src/packages/excalidraw/index";
+import { PlusPromoIcon } from "../../packages/excalidraw/components/icons";
+import { Theme } from "../../packages/excalidraw/element/types";
+import { MainMenu } from "../../packages/excalidraw/index";
 import { LanguageList } from "./LanguageList";
 
 export const AppMainMenu: React.FC<{
-  setCollabDialogShown: (toggle: boolean) => any;
+  onCollabDialogOpen: () => any;
   isCollaborating: boolean;
   isCollabEnabled: boolean;
+  theme: Theme | "system";
+  setTheme: (theme: Theme | "system") => void;
 }> = React.memo((props) => {
   return (
     <MainMenu>
@@ -17,10 +20,10 @@ export const AppMainMenu: React.FC<{
       {props.isCollabEnabled && (
         <MainMenu.DefaultItems.LiveCollaborationTrigger
           isCollaborating={props.isCollaborating}
-          onSelect={() => props.setCollabDialogShown(true)}
+          onSelect={() => props.onCollabDialogOpen()}
         />
       )}
-
+      <MainMenu.DefaultItems.CommandPalette />
       <MainMenu.DefaultItems.Help />
       <MainMenu.DefaultItems.ClearCanvas />
       <MainMenu.Separator />
@@ -35,7 +38,11 @@ export const AppMainMenu: React.FC<{
       </MainMenu.ItemLink>
       <MainMenu.DefaultItems.Socials />
       <MainMenu.Separator />
-      <MainMenu.DefaultItems.ToggleTheme />
+      <MainMenu.DefaultItems.ToggleTheme
+        allowSystemTheme
+        theme={props.theme}
+        onSelect={props.setTheme}
+      />
       <MainMenu.ItemCustom>
         <LanguageList style={{ width: "100%" }} />
       </MainMenu.ItemCustom>
