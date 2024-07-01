@@ -4,6 +4,7 @@
 :root {
   --zIndex-canvas: 1;
   --zIndex-interactiveCanvas: 2;
+  --zIndex-svgLayer: 3;
   --zIndex-wysiwyg: 3;
   --zIndex-canvasButtons: 3;
   --zIndex-layerUI: 4;
@@ -19,6 +20,12 @@
   --sal: env(safe-area-inset-left);
   --sar: env(safe-area-inset-right);
   --sat: env(safe-area-inset-top);
+}
+
+body.excalidraw-cursor-resize,
+body.excalidraw-cursor-resize a:hover,
+body.excalidraw-cursor-resize * {
+  cursor: ew-resize;
 }
 
 .excalidraw {

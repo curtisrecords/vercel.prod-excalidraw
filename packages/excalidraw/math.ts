@@ -1,17 +1,17 @@
-import { NormalizedZoomValue, Point, Zoom } from "./types";
+import type { NormalizedZoomValue, Point, Zoom } from "./types";
 import {
   DEFAULT_ADAPTIVE_RADIUS,
   LINE_CONFIRM_THRESHOLD,
   DEFAULT_PROPORTIONAL_RADIUS,
   ROUNDNESS,
 } from "./constants";
-import {
+import type {
   ExcalidrawElement,
   ExcalidrawLinearElement,
   NonDeleted,
 } from "./element/types";
 import { getCurvePathOps } from "./element/bounds";
-import { Mutable } from "./utility-types";
+import type { Mutable } from "./utility-types";
 import { ShapeCache } from "./scene/ShapeCache";
 
 export const rotate = (
@@ -473,6 +473,14 @@ export const isRightAngle = (angle: number) => {
   // Below, after dividing by Math.PI, a multiple of 0.5 indicates a right
   // angle, which we can check with modulo after rounding.
   return Math.round((angle / Math.PI) * 10000) % 5000 === 0;
+};
+
+export const radianToDegree = (r: number) => {
+  return (r * 180) / Math.PI;
+};
+
+export const degreeToRadian = (d: number) => {
+  return (d / 180) * Math.PI;
 };
 
 // Given two ranges, return if the two ranges overlap with each other

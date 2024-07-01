@@ -1,4 +1,4 @@
-import {
+import type {
   NonDeleted,
   ExcalidrawLinearElement,
   ExcalidrawElement,
@@ -22,13 +22,13 @@ import {
   arePointsEqual,
 } from "../math";
 import { getElementAbsoluteCoords, getLockedLinearCursorAlignSize } from ".";
+import type { Bounds } from "./bounds";
 import {
-  Bounds,
   getCurvePathOps,
   getElementPointsCoords,
   getMinMaxXYFromCurvePathOps,
 } from "./bounds";
-import {
+import type {
   Point,
   AppState,
   PointerCoords,
@@ -36,7 +36,6 @@ import {
   AppClassProperties,
 } from "../types";
 import { mutateElement } from "./mutateElement";
-import History from "../history";
 
 import {
   bindOrUnbindLinearElement,
@@ -48,8 +47,9 @@ import { isBindingElement } from "./typeChecks";
 import { KEYS, shouldRotateWithDiscreteAngle } from "../keys";
 import { getBoundTextElement, handleBindTextResize } from "./textElement";
 import { DRAGGING_THRESHOLD } from "../constants";
-import { Mutable } from "../utility-types";
+import type { Mutable } from "../utility-types";
 import { ShapeCache } from "../scene/ShapeCache";
+import type { Store } from "../store";
 
 const editorMidPointsCache: {
   version: number | null;
@@ -381,7 +381,7 @@ export class LinearElementEditor {
                     elementsMap,
                   ),
                 ),
-                app,
+                elementsMap,
               )
             : null;
 
@@ -642,7 +642,7 @@ export class LinearElementEditor {
   static handlePointerDown(
     event: React.PointerEvent<HTMLElement>,
     appState: AppState,
-    history: History,
+    store: Store,
     scenePointer: { x: number; y: number },
     linearElementEditor: LinearElementEditor,
     app: AppClassProperties,
@@ -700,7 +700,7 @@ export class LinearElementEditor {
         });
         ret.didAddPoint = true;
       }
-      history.resumeRecording();
+      store.shouldCaptureIncrement();
       ret.linearElementEditor = {
         ...linearElementEditor,
         pointerDownState: {
@@ -715,7 +715,10 @@ export class LinearElementEditor {
         },
         selectedPointsIndices: [element.points.length - 1],
         lastUncommittedPoint: null,
-        endBindingElement: getHoveredElementForBinding(scenePointer, app),
+        endBindingElement: getHoveredElementForBinding(
+          scenePointer,
+          elementsMap,
+        ),
       };
 
       ret.didAddPoint = true;
@@ -1165,7 +1168,7 @@ export class LinearElementEditor {
     const nextPoints = points.map((point, idx) => {
       const selectedPointData = targetPoints.find((p) => p.index === idx);
       if (selectedPointData) {
-        if (selectedOriginPoint) {
+        if (selectedPointData.index === 0) {
           return point;
         }
 
@@ -1174,7 +1177,10 @@ export class LinearElementEditor {
         const deltaY =
           selectedPointData.point[1] - points[selectedPointData.index][1];
 
-        return [point[0] + deltaX, point[1] + deltaY] as const;
+        return [
+          point[0] + deltaX - offsetX,
+          point[1] + deltaY - offsetY,
+        ] as const;
       }
       return offsetX || offsetY
         ? ([point[0] - offsetX, point[1] - offsetY] as const)

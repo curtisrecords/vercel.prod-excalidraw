@@ -1,8 +1,8 @@
 import { ROUNDNESS } from "../constants";
-import { ElementOrToolType } from "../types";
-import { MarkNonNullable } from "../utility-types";
+import type { ElementOrToolType } from "../types";
+import type { MarkNonNullable } from "../utility-types";
 import { assertNever } from "../utils";
-import {
+import type {
   ExcalidrawElement,
   ExcalidrawTextElement,
   ExcalidrawEmbeddableElement,
@@ -20,6 +20,7 @@ import {
   ExcalidrawIframeElement,
   ExcalidrawIframeLikeElement,
   ExcalidrawMagicFrameElement,
+  ExcalidrawArrowElement,
 } from "./types";
 
 export const isInitializedImageElement = (
@@ -101,7 +102,7 @@ export const isLinearElement = (
 
 export const isArrowElement = (
   element?: ExcalidrawElement | null,
-): element is ExcalidrawLinearElement => {
+): element is ExcalidrawArrowElement => {
   return element != null && element.type === "arrow";
 };
 
@@ -131,7 +132,7 @@ export const isBindingElementType = (
 };
 
 export const isBindableElement = (
-  element: ExcalidrawElement | null,
+  element: ExcalidrawElement | null | undefined,
   includeLocked = true,
 ): element is ExcalidrawBindableElement => {
   return (

@@ -1,6 +1,5 @@
 import {
   getElementAbsoluteCoords,
-  OMIT_SIDES_FOR_MULTIPLE_ELEMENTS,
   getTransformHandlesFromCoords,
   getTransformHandles,
   getCommonBounds,
@@ -22,23 +21,25 @@ import {
   getElementsInGroup,
   selectGroupsFromGivenElements,
 } from "../groups";
-import {
-  OMIT_SIDES_FOR_FRAME,
-  shouldShowBoundingBox,
+import type {
   TransformHandles,
   TransformHandleType,
 } from "../element/transformHandles";
+import {
+  getOmitSidesForDevice,
+  shouldShowBoundingBox,
+} from "../element/transformHandles";
 import { arrayToMap, throttleRAF } from "../utils";
-import { InteractiveCanvasAppState, Point } from "../types";
+import type { InteractiveCanvasAppState, Point } from "../types";
 import { DEFAULT_TRANSFORM_HANDLE_SPACING, FRAME_STYLE } from "../constants";
 
 import { renderSnaps } from "../renderer/renderSnaps";
 
-import {
-  maxBindingGap,
+import type {
   SuggestedBinding,
   SuggestedPointBinding,
 } from "../element/binding";
+import { maxBindingGap } from "../element/binding";
 import { LinearElementEditor } from "../element/linearElementEditor";
 import {
   bootstrapCanvas,
@@ -46,17 +47,22 @@ import {
   getNormalizedCanvasDimensions,
 } from "./helpers";
 import oc from "open-color";
-import { isFrameLikeElement, isLinearElement } from "../element/typeChecks";
 import {
+  isFrameLikeElement,
+  isLinearElement,
+  isTextElement,
+} from "../element/typeChecks";
+import type {
   ElementsMap,
   ExcalidrawBindableElement,
   ExcalidrawElement,
   ExcalidrawFrameLikeElement,
   ExcalidrawLinearElement,
+  ExcalidrawTextElement,
   GroupId,
   NonDeleted,
 } from "../element/types";
-import {
+import type {
   InteractiveCanvasRenderConfig,
   InteractiveSceneRenderConfig,
   RenderableElementsMap,
@@ -302,7 +308,6 @@ const renderSelectionBorder = (
     cy: number;
     activeEmbeddable: boolean;
   },
-  padding = DEFAULT_TRANSFORM_HANDLE_SPACING * 2,
 ) => {
   const {
     angle,
@@ -318,6 +323,8 @@ const renderSelectionBorder = (
   } = elementProperties;
   const elementWidth = elementX2 - elementX1;
   const elementHeight = elementY2 - elementY1;
+
+  const padding = DEFAULT_TRANSFORM_HANDLE_SPACING * 2;
 
   const linePadding = padding / appState.zoom.value;
   const lineWidth = 8 / appState.zoom.value;
@@ -569,14 +576,38 @@ const renderTransformHandles = (
   });
 };
 
+const renderTextBox = (
+  text: NonDeleted<ExcalidrawTextElement>,
+  context: CanvasRenderingContext2D,
+  appState: InteractiveCanvasAppState,
+  selectionColor: InteractiveCanvasRenderConfig["selectionColor"],
+) => {
+  context.save();
+  const padding = (DEFAULT_TRANSFORM_HANDLE_SPACING * 2) / appState.zoom.value;
+  const width = text.width + padding * 2;
+  const height = text.height + padding * 2;
+  const cx = text.x + width / 2;
+  const cy = text.y + height / 2;
+  const shiftX = -(width / 2 + padding);
+  const shiftY = -(height / 2 + padding);
+  context.translate(cx + appState.scrollX, cy + appState.scrollY);
+  context.rotate(text.angle);
+  context.lineWidth = 1 / appState.zoom.value;
+  context.strokeStyle = selectionColor;
+  context.strokeRect(shiftX, shiftY, width, height);
+  context.restore();
+};
+
 const _renderInteractiveScene = ({
   canvas,
   elementsMap,
   visibleElements,
   selectedElements,
+  allElementsMap,
   scale,
   appState,
   renderConfig,
+  device,
 }: InteractiveSceneRenderConfig) => {
   if (canvas === null) {
     return { atLeastOneVisibleElement: false, elementsMap };
@@ -624,9 +655,28 @@ const _renderInteractiveScene = ({
   // Paint selection element
   if (appState.selectionElement) {
     try {
-      renderSelectionElement(appState.selectionElement, context, appState);
+      renderSelectionElement(
+        appState.selectionElement,
+        context,
+        appState,
+        renderConfig.selectionColor,
+      );
     } catch (error: any) {
       console.error(error);
+    }
+  }
+
+  if (appState.editingElement && isTextElement(appState.editingElement)) {
+    const textElement = allElementsMap.get(appState.editingElement.id) as
+      | ExcalidrawTextElement
+      | undefined;
+    if (textElement && !textElement.autoResize) {
+      renderTextBox(
+        textElement,
+        context,
+        appState,
+        renderConfig.selectionColor,
+      );
     }
   }
 
@@ -806,8 +856,14 @@ const _renderInteractiveScene = ({
         appState.zoom,
         elementsMap,
         "mouse", // when we render we don't know which pointer type so use mouse,
+        getOmitSidesForDevice(device),
       );
-      if (!appState.viewModeEnabled && showBoundingBox) {
+      if (
+        !appState.viewModeEnabled &&
+        showBoundingBox &&
+        // do not show transform handles when text is being edited
+        !isTextElement(appState.editingElement)
+      ) {
         renderTransformHandles(
           context,
           renderConfig,
@@ -844,8 +900,8 @@ const _renderInteractiveScene = ({
         appState.zoom,
         "mouse",
         isFrameSelected
-          ? OMIT_SIDES_FOR_FRAME
-          : OMIT_SIDES_FOR_MULTIPLE_ELEMENTS,
+          ? { ...getOmitSidesForDevice(device), rotation: true }
+          : getOmitSidesForDevice(device),
       );
       if (selectedElements.some((element) => !element.locked)) {
         renderTransformHandles(

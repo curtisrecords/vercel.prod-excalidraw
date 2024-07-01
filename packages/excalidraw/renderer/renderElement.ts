@@ -1,4 +1,4 @@
-import {
+import type {
   ExcalidrawElement,
   ExcalidrawTextElement,
   NonDeletedExcalidrawElement,
@@ -21,14 +21,15 @@ import {
 import { getElementAbsoluteCoords } from "../element/bounds";
 import type { RoughCanvas } from "roughjs/bin/canvas";
 
-import {
+import type {
   StaticCanvasRenderConfig,
   RenderableElementsMap,
+  InteractiveCanvasRenderConfig,
 } from "../scene/types";
 import { distance, getFontString, isRTL } from "../utils";
 import { getCornerRadius, isRightAngle } from "../math";
 import rough from "roughjs/bin/rough";
-import {
+import type {
   AppState,
   StaticCanvasAppState,
   Zoom,
@@ -43,7 +44,8 @@ import {
   MIME_TYPES,
   THEME,
 } from "../constants";
-import { getStroke, StrokeOptions } from "perfect-freehand";
+import type { StrokeOptions } from "perfect-freehand";
+import { getStroke } from "perfect-freehand";
 import {
   getBoundTextElement,
   getContainerCoords,
@@ -88,7 +90,7 @@ const shouldResetImageFilter = (
 };
 
 const getCanvasPadding = (element: ExcalidrawElement) =>
-  element.type === "freedraw" ? element.strokeWidth * 12 : 20;
+  element.type === "freedraw" ? element.strokeWidth * 12 : 200;
 
 export const getRenderOpacity = (
   element: ExcalidrawElement,
@@ -264,7 +266,6 @@ IMAGE_ERROR_PLACEHOLDER_IMG.src = `data:${MIME_TYPES.svg},${encodeURIComponent(
 const drawImagePlaceholder = (
   element: ExcalidrawImageElement,
   context: CanvasRenderingContext2D,
-  zoomValue: AppState["zoom"]["value"],
 ) => {
   context.fillStyle = "#E7E7E7";
   context.fillRect(0, 0, element.width, element.height);
@@ -357,7 +358,7 @@ const drawElementOnCanvas = (
           element.height,
         );
       } else {
-        drawImagePlaceholder(element, context, appState.zoom.value);
+        drawImagePlaceholder(element, context);
       }
       break;
     }
@@ -618,6 +619,7 @@ export const renderSelectionElement = (
   element: NonDeletedExcalidrawElement,
   context: CanvasRenderingContext2D,
   appState: InteractiveCanvasAppState,
+  selectionColor: InteractiveCanvasRenderConfig["selectionColor"],
 ) => {
   context.save();
   context.translate(element.x + appState.scrollX, element.y + appState.scrollY);
@@ -631,7 +633,7 @@ export const renderSelectionElement = (
 
   context.fillRect(offset, offset, element.width, element.height);
   context.lineWidth = 1 / appState.zoom.value;
-  context.strokeStyle = " rgb(105, 101, 219)";
+  context.strokeStyle = selectionColor;
   context.strokeRect(offset, offset, element.width, element.height);
 
   context.restore();
